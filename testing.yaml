@@ -1,0 +1,124 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echoserver1
+  namespace: echoserver1
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    run: echoserver1
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: echoserver2
+  namespace: echoserver2
+spec:
+  ports:
+  - port: 8080
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    run: echoserver2
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echoserver1
+  namespace: echoserver1
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: echoserver1
+  template:
+    metadata:
+      labels:
+        run: echoserver1
+    spec:
+      containers:
+      - name: echoserver1
+        image: gcr.io/google_containers/echoserver:1.10
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 6
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "40Mi"
+            cpu: "20m"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: echoserver2
+  namespace: echoserver2
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      run: echoserver2
+  template:
+    metadata:
+      labels:
+        run: echoserver2
+    spec:
+      containers:
+      - name: echoserver2
+        image: gcr.io/google_containers/echoserver:1.10
+        ports:
+        - containerPort: 8080
+        readinessProbe:
+          tcpSocket:
+            port: 8080
+          initialDelaySeconds: 6
+          periodSeconds: 10
+        resources:
+          requests:
+            memory: "40Mi"
+            cpu: "20m"
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: echoserver-application-gateway
+  namespace: echoserver1
+spec:
+  ingressClassName: "ingressgroup1"
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echoserver1
+            port:
+              number: 8080
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: echoserver-application-gateway
+  namespace: echoserver2
+spec:
+  ingressClassName: "ingressgroup2"
+  rules:
+  - http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: echoserver2
+            port:
+              number: 8080
